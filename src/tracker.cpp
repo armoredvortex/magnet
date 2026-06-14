@@ -70,6 +70,18 @@ std::vector<Peer> getPeers(torrent::TorrentMeta torrentFile)
         res = cli.Get(parsed_url.path + query.str());
     }
 
+    if (!res)
+    {
+        throw std::runtime_error("Tracker HTTP request failed: " +
+                                 httplib::to_string(res.error()));
+    }
+    if (res->status != 200)
+    {
+        throw std::runtime_error("Tracker returned HTTP " +
+                                 std::to_string(res->status) +
+                                 ": " + res->body);
+    }
+
     // std::cout << res->body << std::endl;
 
     std::vector<Peer> peers = parsePeerList(res->body);

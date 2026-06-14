@@ -34,4 +34,9 @@
 # Build directories
 build/
 
+# Web app dependencies and build output
+web/node_modules/
+web/client/dist/
+web/server/data/
+
 .vscode/

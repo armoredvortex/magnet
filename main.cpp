@@ -33,7 +33,16 @@ int main(int argc, char *argv[])
 
     torrent::TorrentMeta torrentFile = parseTorrentMeta(content);
 
-    std::vector<Peer> peers = getPeers(torrentFile);
+    std::vector<Peer> peers;
+    try
+    {
+        peers = getPeers(torrentFile);
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Failed to get peers from tracker: " << e.what() << std::endl;
+        return 1;
+    }
 
     if (peers.empty())
     {
