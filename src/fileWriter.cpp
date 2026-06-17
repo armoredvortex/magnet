@@ -1,5 +1,6 @@
 #include "peer.hpp"
 #include "torrent.hpp"
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <openssl/sha.h>
@@ -26,6 +27,24 @@ bool downloadFullFile(PeerConnection &pc, const torrent::TorrentMeta &torrentMet
         return false;
     }
 
+    int downloadedBytes = 0;
+    auto printProgress = [&](int currentBytes)
+    {
+        const int safeTotal = std::max(totalLen, 1);
+        const int width = 40;
+        const int filled = (currentBytes * width) / safeTotal;
+        const int percent = (currentBytes * 100) / safeTotal;
+
+        std::cout << "\r[";
+        for (int i = 0; i < width; ++i)
+        {
+            std::cout << (i < filled ? '#' : '-');
+        }
+        std::cout << "] " << percent << "% (" << currentBytes << "/" << totalLen << " bytes)" << std::flush;
+    };
+
+    printProgress(0);
+
     for (int pieceIndex = 0; pieceIndex < numPieces; ++pieceIndex)
     {
         int currentPieceLen = std::min(pieceLen, totalLen - pieceIndex * pieceLen);
@@ -45,7 +64,8 @@ bool downloadFullFile(PeerConnection &pc, const torrent::TorrentMeta &torrentMet
             }
 
             std::copy(block.begin(), block.end(), pieceData.begin() + offset);
-            offset += reqLen;
+            offset += static_cast<int>(block.size());
+            printProgress(downloadedBytes + offset);
         }
 
         // Verify hash
@@ -62,9 +82,12 @@ bool downloadFullFile(PeerConnection &pc, const torrent::TorrentMeta &torrentMet
 
         // Write verified piece to file
         out.write(reinterpret_cast<const char *>(pieceData.data()), pieceData.size());
+        downloadedBytes += static_cast<int>(pieceData.size());
         // std::cout << "Downloaded piece " << pieceIndex << "/" << (numPieces - 1) << std::endl;
     }
 
+    printProgress(totalLen);
+    std::cout << std::endl;
     std::cout << "\033[32mFile Download complete! \033[0m";
     std::cout << "Saved to " << torrentMeta.info.name << std::endl;
     out.close();
